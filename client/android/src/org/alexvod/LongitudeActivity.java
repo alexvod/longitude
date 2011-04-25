@@ -1,5 +1,10 @@
 package org.alexvod;
 
+import org.ushmax.android.AndroidLogger;
+import org.ushmax.common.Factory;
+import org.ushmax.common.Logger;
+import org.ushmax.common.LoggerFactory;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
@@ -9,6 +14,14 @@ import android.widget.Button;
 
 public class LongitudeActivity extends Activity {
   //private LongitudeService service;
+
+  public LongitudeActivity() {
+    super();
+    LoggerFactory.setLoggerFactory(new Factory<Logger, Class<?>>() {
+      public Logger create(Class<?> clazz) {
+        return new AndroidLogger(clazz.getSimpleName());
+      }});
+  }
   
   /** Called when the activity is first created. */
   @Override
