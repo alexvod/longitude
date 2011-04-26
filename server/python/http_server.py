@@ -66,6 +66,22 @@ class RequestDispatcher(BaseHTTPServer.BaseHTTPRequestHandler):
       self.end_headers()
       self.wfile.write(error)
 
+  def do_POST(self):
+    try:
+      content, mimetype = self.HandleRequest(self.path)
+      self.send_response(200)
+      self.send_header('Content-type', mimetype)
+      self.send_header('Content-length', len(content))
+      self.end_headers()
+      self.wfile.write(content)
+    except Exception, exc:
+      print 'Occured exception', exc
+      traceback.print_exc()
+      error = str(exc)
+      self.send_response(404)
+      self.send_header('Content-type', 'text/html')
+      self.end_headers()
+      self.wfile.write(error)
 
 class MoreBaseHttpServer(object):
   def __init__(self, port):

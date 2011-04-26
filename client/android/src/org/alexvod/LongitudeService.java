@@ -1,7 +1,12 @@
 package org.alexvod;
 
+import org.ushmax.android.AndroidHttpFetcher;
+import org.ushmax.common.ITaskDispatcher;
 import org.ushmax.common.Logger;
 import org.ushmax.common.LoggerFactory;
+import org.ushmax.common.QueuedTaskDispatcher;
+import org.ushmax.fetcher.AsyncHttpFetcher;
+import org.ushmax.fetcher.HttpFetcher;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -48,6 +53,12 @@ public class LongitudeService extends Service {
 
     // Display a notification about us starting.  We put an icon in the status bar.
     showNotification();
+    
+    ITaskDispatcher taskDispatcher = new QueuedTaskDispatcher(4);
+    HttpFetcher httpFetcher = new AndroidHttpFetcher();
+    AsyncHttpFetcher asyncHttpFetcher = new AsyncHttpFetcher(httpFetcher, taskDispatcher); 
+    locationTracker = new LocationTracker(asyncHttpFetcher);
+    taskDispatcher.start();
   }
 
   @Override
@@ -55,7 +66,6 @@ public class LongitudeService extends Service {
     logger.debug("Starting");
     
     LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
-    locationTracker = new LocationTracker();
     //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationTracker);
     // Temporary hack for debugging: GPS doesn't work indoors.
     locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, MIN_TIME, MIN_DISTANCE, locationTracker);
