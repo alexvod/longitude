@@ -11,6 +11,7 @@ def RunServer():
 
   location_manager = location.LocationManager()
   server.RegisterHandler('/', location_manager.HandleShowRequest)
+  server.RegisterHandler('/getloc', location_manager.HandleGetLocRequest)
   server.RegisterHandler('/update', location_manager.HandleUpdateRequest)
 
   static_handler = static.StaticFilesHandler()

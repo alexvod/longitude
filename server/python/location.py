@@ -19,6 +19,9 @@ class LocationManager(object):
     html = html.replace('@@LOCATIONS@@', self._GetLocationsJson())
     return html, 'text/html'
 
+  def HandleGetLocRequest(self, args):
+    return self._GetLocationsJson(), 'text/javascript'
+
   def _GetLocationsJson(self):
     result = []
     # TODO: show index page if first-time loading

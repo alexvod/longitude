@@ -1,7 +1,7 @@
 var map = null;
-var current_marker = null;
-var icon_base = 'http://maps.google.com/mapfiles/ms/micons/';
-var known_icons = ["red-dot.png", "blue-dot.png", "green-dot.png", "yellow-dot.png", "purple-dot.png"];
+var iconBase = 'http://maps.google.com/mapfiles/ms/micons/';
+var refreshInterval = 5000; // ms
+var allMarkers = {};
 
 function initialize() {
   map = new GMap2(document.getElementById("map_canvas"));
@@ -11,24 +11,55 @@ function initialize() {
   map.enableScrollWheelZoom();
 
   showLocations();
+  setTimeout("refreshLocations()", refreshInterval);
 }
 
-function addNewMarker(placemark) {
+function addNewMarker(name, coords) {
   var myicon = new GIcon();
-  myicon.image = icon_base + "red-dot.png";
+  myicon.image = iconBase + "red-dot.png";
   myicon.iconSize = new GSize(32, 32);
   myicon.iconAnchor = new GPoint(16, 32);
   myicon.infoWindowAnchor = new GPoint(16, 32);
-  var marker = new GMarker(new GLatLng(placemark.lat, placemark.lng), {"icon": myicon});
-  marker.placemark = placemark;
+  var marker = new GMarker(new GLatLng(coords.lat, coords.lng), {"icon": myicon});
+  marker.coords = coords;
   current_marker = marker;
   map.addOverlay(marker);
+  allMarkers[name] = marker;
 }
 
 function showLocations() {
   for (name in locations) {
-    addNewMarker(locations[name]);
+    addNewMarker(name, locations[name]);
   }
 }
 
+function updateLocations(newLocations) {
+  for (name in locations) {
+    var marker = allMarkers[name];
+    if (!(name in newLocations)) {
+      map.removeOverlay(marker);
+      delete allMarkers[name];
+      continue;
+    }
+    var coords = newLocations[name];
+    marker.setLatLng(new GLatLng(coords.lat, coords.lng));
+  }
+  for (name in newLocations) {
+    if (!(name in locations)) {
+      addNewMarker(name, newLocations[name]);
+    }
+  }
+}
 
+function refreshLocations() {
+  var url = "/getloc";
+  GDownloadUrl(url, function(data, responseCode) {
+      if (responseCode != 200) {
+          //alert('Server error: ' + data);
+        return;
+      }
+      var newLocations = eval('(' + data + ')');
+      updateLocations(newLocations);
+    });
+  setTimeout("refreshLocations()", refreshInterval);
+}
