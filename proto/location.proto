@@ -1,0 +1,19 @@
+// To generate Java sources, use:
+// $PROTO_PATH/bin/protoc --java_out=src src/proto/location.proto
+
+package longitude;
+
+option java_package = "org.alexvod.longitude";
+option java_outer_classname = "Proto";
+option optimize_for = LITE_RUNTIME;
+
+message Location {
+  optional string name = 1;
+  required double lat = 2;
+  required double lng = 3;
+  optional double altitude = 4;
+}
+
+message LocationInfo {
+  repeated Location location = 1;
+}
