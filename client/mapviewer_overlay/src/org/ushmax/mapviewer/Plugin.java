@@ -8,15 +8,15 @@ public class Plugin implements AbstractPlugin {
 
   public void onLoad(final MapViewerApp app) {
     Registry<Overlay, ActivityData> registry = app.overlayRegistry;
-    registry.register("yandex_traffic", new Factory<Overlay, ActivityData>() {
+    registry.register("longitude", new Factory<Overlay, ActivityData>() {
       public Overlay create(ActivityData activityData) {
-        return new LongitudeOverlay(app.asyncHttpFetcher, activityData.uiController);
+        return new LongitudeOverlay(app.getResources(), app.asyncHttpFetcher, activityData.uiController);
       }
     });
   }
 
   public void onUnLoad(MapViewerApp app) {
     Registry<Overlay, ActivityData> registry = app.overlayRegistry;
-    registry.unregister("yandex_traffic");
+    registry.unregister("longitude");
   }
 }

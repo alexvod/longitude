@@ -12,6 +12,7 @@ message Location {
   required double lat = 2;
   required double lng = 3;
   optional double altitude = 4;
+  optional double accuracy = 5;
 }
 
 message LocationInfo {

@@ -66,9 +66,9 @@ public class LongitudeService extends Service {
     logger.debug("Starting");
     
     LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
-    //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationTracker);
+    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationTracker);
     // Temporary hack for debugging: GPS doesn't work indoors.
-    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, MIN_TIME, MIN_DISTANCE, locationTracker);
+    //locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, MIN_TIME, MIN_DISTANCE, locationTracker);
     
     // We want this service to continue running until it is explicitly
     // stopped, so return sticky.
