@@ -1,28 +1,16 @@
 package org.alexvod;
 
-import org.ushmax.android.AndroidLogger;
-import org.ushmax.common.Factory;
-import org.ushmax.common.Logger;
-import org.ushmax.common.LoggerFactory;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 
 public class LongitudeActivity extends Activity {
-  //private LongitudeService service;
-
-  public LongitudeActivity() {
-    super();
-    LoggerFactory.setLoggerFactory(new Factory<Logger, Class<?>>() {
-      public Logger create(Class<?> clazz) {
-        return new AndroidLogger(clazz.getSimpleName());
-      }});
-  }
-  
   /** Called when the activity is first created. */
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -46,13 +34,36 @@ public class LongitudeActivity extends Activity {
     });    
   }
   
-  protected void startService() {
+  private void startService() {
     Intent intent = new Intent(this, LongitudeService.class);
     startService(intent);
   }
   
-  protected void stopService() {
+  private void stopService() {
     Intent intent = new Intent(this, LongitudeService.class);
     stopService(intent);
+  }
+  
+  @Override
+  public boolean onCreateOptionsMenu(Menu menu) {
+    MenuInflater inflater = getMenuInflater();
+    inflater.inflate(R.menu.menu, menu);
+    return true;
+  }
+  
+  @Override
+  public boolean onOptionsItemSelected(MenuItem item) {
+    switch (item.getItemId()) {
+    case R.id.settings:
+      showSettingsDialog();
+      return true;
+    default:
+      return super.onOptionsItemSelected(item);      
+    }
+  }
+  
+  private void showSettingsDialog() {
+    Intent intent = new Intent(this, SettingsActivity.class);
+    startActivityForResult(intent, 0);
   }
 }

@@ -1,6 +1,8 @@
 package org.alexvod;
 
 import org.ushmax.android.AndroidHttpFetcher;
+import org.ushmax.android.ProxyListener;
+import org.ushmax.android.SettingsHelper;
 import org.ushmax.common.ITaskDispatcher;
 import org.ushmax.common.Logger;
 import org.ushmax.common.LoggerFactory;
@@ -14,9 +16,11 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.LocationManager;
 import android.os.Binder;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.widget.Toast;
 
 public class LongitudeService extends Service {
@@ -26,14 +30,10 @@ public class LongitudeService extends Service {
   //Unique Identification Number for the Notification.
   // We use it on Notification start, and to cancel it.
   private int NOTIFICATION = 1234;
-  
-  private int MIN_TIME = 1000;
-  private int MIN_DISTANCE = 0;
-  //private int MIN_TIME = 60000;
-  //private int MIN_DISTANCE = 10;
-
 
   private LocationTracker locationTracker;
+  private ProxyListener gpsListener;
+  private ProxyListener networkListener;
 
   /**
    * Class for clients to access.  Because we know this service always
@@ -53,7 +53,7 @@ public class LongitudeService extends Service {
 
     // Display a notification about us starting.  We put an icon in the status bar.
     showNotification();
-    
+
     ITaskDispatcher taskDispatcher = new QueuedTaskDispatcher(4);
     HttpFetcher httpFetcher = new AndroidHttpFetcher();
     AsyncHttpFetcher asyncHttpFetcher = new AsyncHttpFetcher(httpFetcher, taskDispatcher); 
@@ -64,22 +64,53 @@ public class LongitudeService extends Service {
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
     logger.debug("Starting");
-    
-    LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
-    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationTracker);
-    // Temporary hack for debugging: GPS doesn't work indoors.
-    //locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, MIN_TIME, MIN_DISTANCE, locationTracker);
-    
+    enableLocationTracking();
+
     // We want this service to continue running until it is explicitly
     // stopped, so return sticky.
     return START_STICKY;
   }
 
+  public void enableLocationTracking() {
+    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+    int minTime = SettingsHelper.getIntPref(prefs, "loc_update_time", 60000);
+    int minDistance = SettingsHelper.getIntPref(prefs, "loc_update_distance", 10);
+    boolean useNetwork = SettingsHelper.getBoolPref(prefs, "loc_use_network", true);
+    boolean useGps = SettingsHelper.getBoolPref(prefs, "loc_use_gps", true);
+
+    LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+    if (useGps) {
+      gpsListener = new ProxyListener(locationTracker);
+      locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTime, minDistance, gpsListener);
+      logger.debug("GPS bound");      
+    }
+    if (useNetwork) {
+      networkListener = new ProxyListener(locationTracker);
+      locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, minTime, minDistance, networkListener);
+      logger.debug("Network bound bound");
+    }
+  }
+
+  public void disableLocationTracking() {
+    LocationManager mgr = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+    if (gpsListener != null) { 
+      mgr.removeUpdates(gpsListener);
+      gpsListener.unbind();
+      gpsListener = null;
+      logger.debug("GPS unbound");
+    }
+    if (networkListener != null) {
+      mgr.removeUpdates(networkListener);
+      networkListener.unbind();
+      networkListener = null;
+      logger.debug("Network unbound");
+    }
+  }
+
   @Override
   public void onDestroy() {
-    LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
-    locationManager.removeUpdates(locationTracker);
-    
+    disableLocationTracking();
+
     // Cancel the persistent notification.
     notificationManager.cancel(NOTIFICATION);
 

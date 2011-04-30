@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<EditTextPreference android:key="loc_update_time" android:summary="Time interval of GPS location updates, in milliseconds" android:title="Location update interval"></EditTextPreference>
+<EditTextPreference android:key="loc_update_distance" android:summary="Minimal distance of GPS location updates, in meters" android:title="Location update distance"></EditTextPreference>
+<CheckBoxPreference android:key="loc_use_gps" android:summary="Use GPS for location tracking" android:title="Use GPS location"></CheckBoxPreference>
+<CheckBoxPreference android:key="loc_use_network" android:summary="Use wifi networks for location tracking" android:title="Use network location"></CheckBoxPreference>
+</PreferenceScreen>
