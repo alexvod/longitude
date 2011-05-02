@@ -1,6 +1,7 @@
 package org.ushmax.mapviewer;
 
-import org.alexvod.longitude.overlay.LongitudeOverlay;
+import org.alexvod.longitude.LongitudeOverlay;
+import org.alexvod.longitude.LongitudeUiModule;
 import org.ushmax.common.Factory;
 import org.ushmax.common.Registry;
 
@@ -13,6 +14,14 @@ public class Plugin implements AbstractPlugin {
         return new LongitudeOverlay(app.getResources(), app.asyncHttpFetcher, activityData.uiController);
       }
     });
+    
+    Factory<UiModule, ActivityData> uiModuleFactory = new Factory<UiModule, ActivityData>() {
+      @Override
+      public UiModule create(ActivityData activityData) {
+        return new LongitudeUiModule();
+      }
+    };
+    app.uiModules.add(uiModuleFactory);
   }
 
   public void onUnLoad(MapViewerApp app) {

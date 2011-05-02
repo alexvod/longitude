@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.alexvod.longitude.overlay;
+package org.alexvod.longitude;
 
 import org.alexvod.longitude.Proto.Location;
 import org.alexvod.longitude.Proto.LocationInfo;
