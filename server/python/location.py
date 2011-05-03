@@ -21,7 +21,7 @@ class LocationManager(object):
       raise BadCoordsException('Bad accuracy: %.3f' % accuracy)
 
   def HandleUpdateRequest(self, args):
-    name = args['id']
+    name = unicode(args['id'], 'utf-8')
     lat = float(args['lat'])
     lng = float(args['lng'])
     accuracy = float(args.get('acc','0.0'))
@@ -36,7 +36,6 @@ class LocationManager(object):
 
   def HandleGetLocRequest(self, args):
     output = args.get('output', 'json')
-    print output
     if output == 'proto':
       return self._GetLocationsProto(), 'application/octet-stream'
     return self._GetLocationsJson(), 'text/javascript'
