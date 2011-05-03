@@ -13,6 +13,8 @@ message Location {
   required double lng = 3;
   optional double altitude = 4;
   optional double accuracy = 5;
+  // UTC time since the epoch, in ms.
+  optional int64 time = 6;
 }
 
 message LocationInfo {

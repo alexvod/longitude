@@ -11,7 +11,7 @@ from google.protobuf import descriptor_pb2
 DESCRIPTOR = descriptor.FileDescriptor(
   name='location.proto',
   package='longitude',
-  serialized_pb='\n\x0elocation.proto\x12\tlongitude\"V\n\x08Location\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0b\n\x03lat\x18\x02 \x02(\x01\x12\x0b\n\x03lng\x18\x03 \x02(\x01\x12\x10\n\x08\x61ltitude\x18\x04 \x01(\x01\x12\x10\n\x08\x61\x63\x63uracy\x18\x05 \x01(\x01\"5\n\x0cLocationInfo\x12%\n\x08location\x18\x01 \x03(\x0b\x32\x13.longitude.LocationB \n\x15org.alexvod.longitudeB\x05ProtoH\x03')
+  serialized_pb='\n\x0elocation.proto\x12\tlongitude\"d\n\x08Location\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0b\n\x03lat\x18\x02 \x02(\x01\x12\x0b\n\x03lng\x18\x03 \x02(\x01\x12\x10\n\x08\x61ltitude\x18\x04 \x01(\x01\x12\x10\n\x08\x61\x63\x63uracy\x18\x05 \x01(\x01\x12\x0c\n\x04time\x18\x06 \x01(\x03\"5\n\x0cLocationInfo\x12%\n\x08location\x18\x01 \x03(\x0b\x32\x13.longitude.LocationB \n\x15org.alexvod.longitudeB\x05ProtoH\x03')
 
 
 
@@ -58,6 +58,13 @@ _LOCATION = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='time', full_name='longitude.Location.time', index=5,
+      number=6, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -68,7 +75,7 @@ _LOCATION = descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=29,
-  serialized_end=115,
+  serialized_end=129,
 )
 
 
@@ -95,8 +102,8 @@ _LOCATIONINFO = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=117,
-  serialized_end=170,
+  serialized_start=131,
+  serialized_end=184,
 )
 
 _LOCATIONINFO.fields_by_name['location'].message_type = _LOCATION

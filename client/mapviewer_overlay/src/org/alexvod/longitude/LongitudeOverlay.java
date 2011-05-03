@@ -3,6 +3,10 @@
  */
 package org.alexvod.longitude;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+
 import org.alexvod.longitude.Proto.Location;
 import org.alexvod.longitude.Proto.LocationInfo;
 import org.ushmax.android.SettingsHelper;
@@ -51,6 +55,7 @@ public class LongitudeOverlay implements Overlay {
   private int iconSizeX;
   private int iconSizeY;
   private Context context;
+  private static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
   
   public LongitudeOverlay(Context context, Resources resources, AsyncHttpFetcher httpFetcher, UiController uiController) {
     this.context = context;
@@ -173,7 +178,10 @@ public class LongitudeOverlay implements Overlay {
       int dy = (y >> zoomShift) - iconAnchorY + iconSizeY / 2 - (origin.y + tapPoint.y);
       int dist = Math.abs(dx) + Math.abs(dy);
       if (dist < maxDist) {
-        uiController.displayMessage(location.getName());
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(location.getTime());
+        String text = location.getName() + " at  " + dateFormat.format(cal.getTime());
+        uiController.displayMessage(text);
         return true;
       }
     }

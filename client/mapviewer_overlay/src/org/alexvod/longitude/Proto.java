@@ -30,6 +30,10 @@ public final class Proto {
     // optional double accuracy = 5;
     boolean hasAccuracy();
     double getAccuracy();
+    
+    // optional int64 time = 6;
+    boolean hasTime();
+    long getTime();
   }
   public static final class Location extends
       com.google.protobuf.GeneratedMessageLite
@@ -122,12 +126,23 @@ public final class Proto {
       return accuracy_;
     }
     
+    // optional int64 time = 6;
+    public static final int TIME_FIELD_NUMBER = 6;
+    private long time_;
+    public boolean hasTime() {
+      return ((bitField0_ & 0x00000020) == 0x00000020);
+    }
+    public long getTime() {
+      return time_;
+    }
+    
     private void initFields() {
       name_ = "";
       lat_ = 0D;
       lng_ = 0D;
       altitude_ = 0D;
       accuracy_ = 0D;
+      time_ = 0L;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -164,6 +179,9 @@ public final class Proto {
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         output.writeDouble(5, accuracy_);
       }
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+        output.writeInt64(6, time_);
+      }
     }
     
     private int memoizedSerializedSize = -1;
@@ -191,6 +209,10 @@ public final class Proto {
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
           .computeDoubleSize(5, accuracy_);
+      }
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(6, time_);
       }
       memoizedSerializedSize = size;
       return size;
@@ -302,6 +324,8 @@ public final class Proto {
         bitField0_ = (bitField0_ & ~0x00000008);
         accuracy_ = 0D;
         bitField0_ = (bitField0_ & ~0x00000010);
+        time_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000020);
         return this;
       }
       
@@ -355,6 +379,10 @@ public final class Proto {
           to_bitField0_ |= 0x00000010;
         }
         result.accuracy_ = accuracy_;
+        if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
+          to_bitField0_ |= 0x00000020;
+        }
+        result.time_ = time_;
         result.bitField0_ = to_bitField0_;
         return result;
       }
@@ -375,6 +403,9 @@ public final class Proto {
         }
         if (other.hasAccuracy()) {
           setAccuracy(other.getAccuracy());
+        }
+        if (other.hasTime()) {
+          setTime(other.getTime());
         }
         return this;
       }
@@ -431,6 +462,11 @@ public final class Proto {
             case 41: {
               bitField0_ |= 0x00000010;
               accuracy_ = input.readDouble();
+              break;
+            }
+            case 48: {
+              bitField0_ |= 0x00000020;
+              time_ = input.readInt64();
               break;
             }
           }
@@ -555,6 +591,27 @@ public final class Proto {
       public Builder clearAccuracy() {
         bitField0_ = (bitField0_ & ~0x00000010);
         accuracy_ = 0D;
+        
+        return this;
+      }
+      
+      // optional int64 time = 6;
+      private long time_ ;
+      public boolean hasTime() {
+        return ((bitField0_ & 0x00000020) == 0x00000020);
+      }
+      public long getTime() {
+        return time_;
+      }
+      public Builder setTime(long value) {
+        bitField0_ |= 0x00000020;
+        time_ = value;
+        
+        return this;
+      }
+      public Builder clearTime() {
+        bitField0_ = (bitField0_ & ~0x00000020);
+        time_ = 0L;
         
         return this;
       }

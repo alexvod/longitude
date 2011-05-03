@@ -1,5 +1,7 @@
 import urllib
 import ioutils
+import cgi
+import time
 import location_pb2
 
 _START_PAGE = 'index.html'
@@ -25,8 +27,12 @@ class LocationManager(object):
     lat = float(args['lat'])
     lng = float(args['lng'])
     accuracy = float(args.get('acc','0.0'))
+    timestamp = long(args.get('time', '0.0'))
+    now = time.time() * 1000
+    if timestamp > now:
+      timestamp = now
     self._ValidateCoords(lat, lng, accuracy)
-    self._locations[name] = (lat, lng, accuracy)
+    self._locations[name] = (lat, lng, accuracy, timestamp)
     return 'ok', 'text/plain'
     
   def HandleShowRequest(self, args):
@@ -43,7 +49,8 @@ class LocationManager(object):
   def _GetLocationsJson(self):
     result = []
     for name, location in self._locations.iteritems():
-      result.append('\'%s\': {\'lat\': %.5f, \'lng\': %.5f, \'accuracy\': %.5f}' % (urllib.quote(name), location[0], location[1], location[2]))
+      # TODO: proper escaping here
+      result.append('\'%s\': {\'lat\': %.5f, \'lng\': %.5f, \'accuracy\': %.5f, \'time\': %d}' % (cgi.escape(name.encode('utf-8')), location[0], location[1], location[2], location[3]))
     return '{' + ', '.join(result) + '}'
 
   def _GetLocationsProto(self):
@@ -54,5 +61,6 @@ class LocationManager(object):
       loc.lat = location[0]
       loc.lng = location[1]
       loc.accuracy = location[2]
+      loc.time = location[3]
     return result.SerializeToString()
 

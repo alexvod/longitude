@@ -40,13 +40,14 @@ public class LocationTracker implements LocationListener {
     double lat = location.getLatitude();
     double lng = location.getLongitude();
     double accuracy = location.getAccuracy();
+    long timestamp = location.getTime();
     logger.debug("Location update " + lat + "," + lng + ":" + accuracy);
 
-    sendLocationToServer(lat, lng, accuracy);
+    sendLocationToServer(lat, lng, accuracy, timestamp);
   }
 
-  private void sendLocationToServer(double lat, double lng, double accuracy) {
-    final String url = "http://" + server + "/update?id=" + id + "&lat=" + lat + "&lng=" + lng + "&acc=" + accuracy; 
+  private void sendLocationToServer(double lat, double lng, double accuracy, long timestamp) {
+    final String url = "http://" + server + "/update?id=" + id + "&lat=" + lat + "&lng=" + lng + "&acc=" + accuracy + "&time=" + timestamp;
     MHttpRequest req = new MHttpRequest();
     req.url = url;
     req.method = HttpFetcher.Method.POST;
