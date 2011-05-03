@@ -57,7 +57,7 @@ public class LongitudeService extends Service {
     ITaskDispatcher taskDispatcher = new QueuedTaskDispatcher(4);
     HttpFetcher httpFetcher = new AndroidHttpFetcher();
     AsyncHttpFetcher asyncHttpFetcher = new AsyncHttpFetcher(httpFetcher, taskDispatcher); 
-    locationTracker = new LocationTracker(asyncHttpFetcher);
+    locationTracker = new LocationTracker(this, asyncHttpFetcher);
     taskDispatcher.start();
   }
 

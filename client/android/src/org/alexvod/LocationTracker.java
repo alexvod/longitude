@@ -1,5 +1,6 @@
 package org.alexvod;
 
+import org.ushmax.android.SettingsHelper;
 import org.ushmax.common.BufferAllocator;
 import org.ushmax.common.ByteArraySlice;
 import org.ushmax.common.Callback;
@@ -11,23 +12,25 @@ import org.ushmax.fetcher.HttpFetcher;
 import org.ushmax.fetcher.HttpFetcher.MHttpRequest;
 import org.ushmax.fetcher.HttpFetcher.NetworkException;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 
 public class LocationTracker implements LocationListener { 
   private static final Logger logger = LoggerFactory.getLogger(LocationTracker.class);
-  private static final String TEST_ID = "test";
-  private static final String TEST_SERVER = "bomjp.dyndns.org:46940";
-
+  
   private String id;
   private int networkTimeout;
   private AsyncHttpFetcher httpFetcher;
   private String server;
 
-  public LocationTracker(AsyncHttpFetcher httpFetcher) {
-    id = TEST_ID;
-    server = TEST_SERVER;
+  public LocationTracker(Context context, AsyncHttpFetcher httpFetcher) {
+    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+    server = SettingsHelper.getStringPref(prefs, "longitude_server", "host:port");
+    id = SettingsHelper.getStringPref(prefs, "client_name", "test");
     networkTimeout = 30000;
     this.httpFetcher = httpFetcher;
   }
