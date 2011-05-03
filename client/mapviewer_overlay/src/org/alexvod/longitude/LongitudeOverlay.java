@@ -17,6 +17,7 @@ import org.ushmax.fetcher.HttpFetcher;
 import org.ushmax.fetcher.HttpFetcher.MHttpRequest;
 import org.ushmax.fetcher.HttpFetcher.NetworkException;
 import org.ushmax.geometry.FastMercator;
+import org.ushmax.geometry.MercatorReference;
 import org.ushmax.geometry.Point;
 import org.ushmax.mapviewer.Overlay;
 import org.ushmax.mapviewer.R;
@@ -28,7 +29,9 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Paint.Style;
 import android.preference.PreferenceManager;
 
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -38,7 +41,7 @@ public class LongitudeOverlay implements Overlay {
   private static final int HTTP_DEADLINE = 30000;
   private AsyncHttpFetcher httpFetcher;
   private UiController uiController;
-  private Paint paint;
+  private Paint paint, iconPaint;
   private Thread updaterThread;
   private volatile boolean quit;
   private Bitmap icon;
@@ -53,7 +56,10 @@ public class LongitudeOverlay implements Overlay {
     this.context = context;
     this.httpFetcher = httpFetcher;
     this.uiController = uiController;
+    iconPaint = new Paint();
     paint = new Paint();
+    paint.setColor(Color.argb(32, 0, 0, 255));
+    paint.setStyle(Style.FILL_AND_STROKE);
     icon = BitmapFactory.decodeResource(resources, R.drawable.red_dot);
     iconSizeX = icon.getWidth();
     iconSizeY = icon.getHeight();
@@ -127,15 +133,23 @@ public class LongitudeOverlay implements Overlay {
       Location location = info.getLocation(i);
       int y = FastMercator.projectLat((int)(location.getLat() * 1e+7));
       int x = FastMercator.projectLng((int)(location.getLng() * 1e+7));
-      int pt_x = (x >> zoomShift) - origin.x - iconAnchorX;
-      int pt_y = (y >> zoomShift) - origin.y - iconAnchorY;
+      int accuracy = (int) (location.getAccuracy() * 
+          MercatorReference.metersToPixels((float)location.getLat(), (float)location.getLng(), 20));
+      int radius = accuracy >> zoomShift;
+      x = (x >> zoomShift) - origin.x;
+      y = (y >> zoomShift) - origin.y;
+      if (radius > 3) {
+        canvas.drawCircle(x, y, radius, paint);
+      }
+      int pt_x = x - iconAnchorX;
+      int pt_y = y - iconAnchorY;
       if ((pt_x < -iconSizeX) ||
           (pt_y < -iconSizeY) ||
           (pt_x > size.x) ||
           (pt_y > size.y)) {
         continue;
       }
-      canvas.drawBitmap(icon, pt_x, pt_y, paint);
+      canvas.drawBitmap(icon, pt_x, pt_y, iconPaint);
     }
   }
 

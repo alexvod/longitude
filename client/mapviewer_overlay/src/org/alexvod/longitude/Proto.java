@@ -26,6 +26,10 @@ public final class Proto {
     // optional double altitude = 4;
     boolean hasAltitude();
     double getAltitude();
+    
+    // optional double accuracy = 5;
+    boolean hasAccuracy();
+    double getAccuracy();
   }
   public static final class Location extends
       com.google.protobuf.GeneratedMessageLite
@@ -108,11 +112,22 @@ public final class Proto {
       return altitude_;
     }
     
+    // optional double accuracy = 5;
+    public static final int ACCURACY_FIELD_NUMBER = 5;
+    private double accuracy_;
+    public boolean hasAccuracy() {
+      return ((bitField0_ & 0x00000010) == 0x00000010);
+    }
+    public double getAccuracy() {
+      return accuracy_;
+    }
+    
     private void initFields() {
       name_ = "";
       lat_ = 0D;
       lng_ = 0D;
       altitude_ = 0D;
+      accuracy_ = 0D;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -146,6 +161,9 @@ public final class Proto {
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         output.writeDouble(4, altitude_);
       }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        output.writeDouble(5, accuracy_);
+      }
     }
     
     private int memoizedSerializedSize = -1;
@@ -169,6 +187,10 @@ public final class Proto {
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
           .computeDoubleSize(4, altitude_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeDoubleSize(5, accuracy_);
       }
       memoizedSerializedSize = size;
       return size;
@@ -278,6 +300,8 @@ public final class Proto {
         bitField0_ = (bitField0_ & ~0x00000004);
         altitude_ = 0D;
         bitField0_ = (bitField0_ & ~0x00000008);
+        accuracy_ = 0D;
+        bitField0_ = (bitField0_ & ~0x00000010);
         return this;
       }
       
@@ -327,6 +351,10 @@ public final class Proto {
           to_bitField0_ |= 0x00000008;
         }
         result.altitude_ = altitude_;
+        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+          to_bitField0_ |= 0x00000010;
+        }
+        result.accuracy_ = accuracy_;
         result.bitField0_ = to_bitField0_;
         return result;
       }
@@ -344,6 +372,9 @@ public final class Proto {
         }
         if (other.hasAltitude()) {
           setAltitude(other.getAltitude());
+        }
+        if (other.hasAccuracy()) {
+          setAccuracy(other.getAccuracy());
         }
         return this;
       }
@@ -395,6 +426,11 @@ public final class Proto {
             case 33: {
               bitField0_ |= 0x00000008;
               altitude_ = input.readDouble();
+              break;
+            }
+            case 41: {
+              bitField0_ |= 0x00000010;
+              accuracy_ = input.readDouble();
               break;
             }
           }
@@ -498,6 +534,27 @@ public final class Proto {
       public Builder clearAltitude() {
         bitField0_ = (bitField0_ & ~0x00000008);
         altitude_ = 0D;
+        
+        return this;
+      }
+      
+      // optional double accuracy = 5;
+      private double accuracy_ ;
+      public boolean hasAccuracy() {
+        return ((bitField0_ & 0x00000010) == 0x00000010);
+      }
+      public double getAccuracy() {
+        return accuracy_;
+      }
+      public Builder setAccuracy(double value) {
+        bitField0_ |= 0x00000010;
+        accuracy_ = value;
+        
+        return this;
+      }
+      public Builder clearAccuracy() {
+        bitField0_ = (bitField0_ & ~0x00000010);
+        accuracy_ = 0D;
         
         return this;
       }
