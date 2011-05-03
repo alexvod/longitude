@@ -11,7 +11,7 @@ public class Plugin implements AbstractPlugin {
     Registry<Overlay, ActivityData> registry = app.overlayRegistry;
     registry.register("longitude", new Factory<Overlay, ActivityData>() {
       public Overlay create(ActivityData activityData) {
-        return new LongitudeOverlay(app.getResources(), app.asyncHttpFetcher, activityData.uiController);
+        return new LongitudeOverlay(app, app.getResources(), app.asyncHttpFetcher, activityData.uiController);
       }
     });
     

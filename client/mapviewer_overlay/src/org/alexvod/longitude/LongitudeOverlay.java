@@ -5,6 +5,7 @@ package org.alexvod.longitude;
 
 import org.alexvod.longitude.Proto.Location;
 import org.alexvod.longitude.Proto.LocationInfo;
+import org.ushmax.android.SettingsHelper;
 import org.ushmax.common.BufferAllocator;
 import org.ushmax.common.ByteArraySlice;
 import org.ushmax.common.Callback;
@@ -21,18 +22,19 @@ import org.ushmax.mapviewer.Overlay;
 import org.ushmax.mapviewer.R;
 import org.ushmax.mapviewer.UiController;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.preference.PreferenceManager;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
 public class LongitudeOverlay implements Overlay {
   private static final Logger logger = LoggerFactory.getLogger(LongitudeOverlay.class);
-  private static final String SERVER_URL = "http://bomjp.dyndns.org:46940/getloc?output=proto";
-  private static final int UPDATE_INTERVAL = 60000;
   private static final int HTTP_DEADLINE = 30000;
   private AsyncHttpFetcher httpFetcher;
   private UiController uiController;
@@ -45,9 +47,10 @@ public class LongitudeOverlay implements Overlay {
   private int iconAnchorY;
   private int iconSizeX;
   private int iconSizeY;
- 
+  private Context context;
   
-  public LongitudeOverlay(Resources resources, AsyncHttpFetcher httpFetcher, UiController uiController) {
+  public LongitudeOverlay(Context context, Resources resources, AsyncHttpFetcher httpFetcher, UiController uiController) {
+    this.context = context;
     this.httpFetcher = httpFetcher;
     this.uiController = uiController;
     paint = new Paint();
@@ -69,9 +72,13 @@ public class LongitudeOverlay implements Overlay {
   
   private void updaterThreadLoop() {
     while (!quit) {
+      SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+      String serverAddress = SettingsHelper.getStringPref(prefs, "longitude_server", "host:port");
+      int updateInterval = SettingsHelper.getIntPref(prefs, "longitude_update", 60000);
+      String url = "http://" + serverAddress + "/getloc?output=proto";
       MHttpRequest req = new MHttpRequest();
       req.method = HttpFetcher.Method.GET;
-      req.url = SERVER_URL;
+      req.url = url;
       httpFetcher.fetch(req,
           new Callback<Pair<ByteArraySlice, NetworkException>>() {
             @Override
@@ -79,7 +86,7 @@ public class LongitudeOverlay implements Overlay {
               onReceiveUpdate(result);
             }}, HTTP_DEADLINE);
       try {
-        Thread.sleep(UPDATE_INTERVAL);
+        Thread.sleep(updateInterval);
       } catch (InterruptedException e) {
         break;
       }
