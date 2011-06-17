@@ -31,7 +31,7 @@ public class LongitudeActivity extends Activity {
       public void onClick(View v) {
         stopService();
       }
-    });    
+    });
   }
   
   private void startService() {
