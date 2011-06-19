@@ -1,6 +1,5 @@
 var map = null;
 var iconBase = 'http://maps.google.com/mapfiles/ms/micons/';
-var refreshInterval = 5000; // ms
 var allMarkers = {};
 
 function initialize() {
@@ -11,7 +10,8 @@ function initialize() {
   map.enableScrollWheelZoom();
 
   showLocations();
-  setTimeout("refreshLocations()", refreshInterval);
+  // A hack to avoid forever-loading page.
+  setTimeout("pollForUpdates()", 50);
 }
 
 function addNewMarker(name, coords) {
@@ -51,15 +51,22 @@ function updateLocations(newLocations) {
   }
 }
 
-function refreshLocations() {
-  var url = "/getloc";
-  GDownloadUrl(url, function(data, responseCode) {
-      if (responseCode != 200) {
-          //alert('Server error: ' + data);
-        return;
-      }
-      var newLocations = eval('(' + data + ')');
-      updateLocations(newLocations);
-    });
-  setTimeout("refreshLocations()", refreshInterval);
+function handler() {
+  // Ignore intermediate state.
+  if (this.readyState != 4) {
+    return;
+  }
+  var status;
+  if (this.status == 200) {
+    newLocations = eval("(" + this.responseText + ")");
+    updateLocations(newLocations)
+  }
+  pollForUpdates()
+}
+
+function pollForUpdates() {
+  var client = new XMLHttpRequest();
+  client.onreadystatechange = handler;
+  client.open("GET", "/poll", true)
+  client.send();
 }

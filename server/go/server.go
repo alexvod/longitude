@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/list"
 	"flag"
 	"fmt"
 	"http"
@@ -38,8 +39,7 @@ type ManagerRequest interface {
 }
 
 type GetLocationsRequest struct {
-	locations map[string]Location
-	out chan bool
+	out chan *map[string]Location
 }
 
 func (x *GetLocationsRequest) locationManagerRequest() {}
@@ -51,6 +51,12 @@ type UpdateLocationRequest struct {
 }
 
 func (x *UpdateLocationRequest) locationManagerRequest() {}
+
+type WaitForUpdatesRequest struct {
+	out chan *map[string]Location
+}
+
+func (x *WaitForUpdatesRequest) locationManagerRequest() {}
 
 func ValidateCoords(lat float32, lng float32, accuracy float32) *string {
 	if (lat < -90) || (lat > 90) {
@@ -68,23 +74,40 @@ func ValidateCoords(lat float32, lng float32, accuracy float32) *string {
 	return nil
 }
 
+func CopyMap(src map[string]Location, dst map[string]Location) {
+	for key, value := range src {
+		dst[key] = value
+	}
+}
+
 func Manager(in chan ManagerRequest) {
 	locations := map[string]Location{}
+	waiters := list.New()
 	for {
 		req := <- in
 		switch t := req.(type) {
 		case *GetLocationsRequest:
-			log.Printf("Got get locations request")
 			getLocReq := req.(*GetLocationsRequest)
-			for name, location := range locations {
-				getLocReq.locations[name] = location
-			}
-			getLocReq.out <- true
+			log.Printf("Got locations request")
+			newLocations := map[string]Location{}
+			CopyMap(locations, newLocations)
+			getLocReq.out <- &newLocations
 		case *UpdateLocationRequest:
 			updateReq := req.(*UpdateLocationRequest)
 			log.Printf("Got update request for %s", updateReq.id)
 			locations[updateReq.id] = *updateReq.location
 			updateReq.out <- true
+			newLocations := map[string]Location{}
+			CopyMap(locations, newLocations)
+			for e := waiters.Front(); e != nil; e = e.Next() {
+				waiter := e.Value.(chan *map[string]Location)
+				waiter <- &newLocations
+			}
+			waiters = list.New()
+		case *WaitForUpdatesRequest:
+			log.Printf("Got poll request")
+			pollReq := req.(*WaitForUpdatesRequest)
+			waiters.PushBack(pollReq.out)
 		default:
 			panic(fmt.Sprintf("Unknown request type %T", t))
 		}
@@ -160,20 +183,18 @@ func JavascriptHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "File not found", http.StatusBadRequest)
 		return
 	}
+	w.Header().Add("Content-type", "text/javascript")
 	w.Write(data)
 }
 
-func GetAllLocations(manager chan ManagerRequest) map[string]Location {
-	out := make(chan bool)
-	locations := map[string]Location{}
-	getLocRequest := &GetLocationsRequest{locations, out}
-	manager <- getLocRequest
-	_ = <- out
+func GetAllLocations(manager chan ManagerRequest) *map[string]Location {
+	out := make(chan *map[string]Location)
+	manager <- &GetLocationsRequest{out}
+	locations := <- out
 	return locations
 }
 
-func GetLocationsJson(manager chan ManagerRequest) string {
-	locations := GetAllLocations(manager)
+func PrintLocationsAsJson(locations map[string]Location) string {
 	result := ""
 	for name, location := range locations {
 		// TODO: proper escaping here
@@ -187,10 +208,9 @@ func GetLocationsJson(manager chan ManagerRequest) string {
 	return result
 }
 	
-func GetLocationsProto(manager chan ManagerRequest) []byte {
-	locations := GetAllLocations(manager)
-
-	locProto := &locationProto.LocationInfo{make([]*locationProto.Location, len(locations)), nil}
+func PrintLocationsAsProto(locations map[string]Location) []byte {
+	locProto := &locationProto.LocationInfo{
+		make([]*locationProto.Location, len(locations)), nil}
 	loc := locProto.Location
 	for name, location := range locations {
 		loc[0] = &locationProto.Location{
@@ -203,18 +223,38 @@ func GetLocationsProto(manager chan ManagerRequest) []byte {
 }
 
 func ShowMainPage(w http.ResponseWriter, r *http.Request, manager chan ManagerRequest) {
-	response := strings.Replace(indexHtml, "@@LOCATIONS@@", GetLocationsJson(manager), -1)
+	locations := GetAllLocations(manager)
+	response := strings.Replace(indexHtml, "@@LOCATIONS@@",
+		PrintLocationsAsJson(*locations), -1)
 	w.Write([]byte(response))
 }
 
 func GetLocations(w http.ResponseWriter, r *http.Request, manager chan ManagerRequest) {
 	params, _ := http.ParseQuery(r.URL.RawQuery)
 	outFormat, err := GetQueryParam(params, "output")
+	locations := GetAllLocations(manager)
+	
 	if err == nil && *outFormat == "proto" {
 		w.Header().Add("Content-type", "application/octet-stream")
-		w.Write(GetLocationsProto(manager))
+		w.Write(PrintLocationsAsProto(*locations))
 	} else {
-		w.Write([]byte(GetLocationsJson(manager)))
+		w.Write([]byte(PrintLocationsAsJson(*locations)))
+	}
+}
+
+func Poll(w http.ResponseWriter, r *http.Request, manager chan ManagerRequest) {
+	params, _ := http.ParseQuery(r.URL.RawQuery)
+	outFormat, err := GetQueryParam(params, "output")
+
+	out := make(chan *map[string]Location)
+	manager <- &WaitForUpdatesRequest{out}
+	locations := <- out
+
+	if err == nil && *outFormat == "proto" {
+		w.Header().Add("Content-type", "application/octet-stream")
+		w.Write(PrintLocationsAsProto(*locations))
+	} else {
+		w.Write([]byte(PrintLocationsAsJson(*locations)))
 	}
 }
 
@@ -291,6 +331,7 @@ func main() {
 	http.HandleFunc("/", MakeHandler(manager, ShowMainPage))
 	http.HandleFunc("/getloc", MakeHandler(manager, GetLocations))
 	http.HandleFunc("/update", MakeHandler(manager, UpdateLocation))
+	http.HandleFunc("/poll", MakeHandler(manager, Poll))
 	http.HandleFunc("/js", JavascriptHandler)
 	log.Printf("Listening on HTTP port %d", *port)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
