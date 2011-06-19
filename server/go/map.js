@@ -34,7 +34,7 @@ function showLocations() {
 }
 
 function updateLocations(newLocations) {
-  for (name in locations) {
+  for (name in allMarkers) {
     var marker = allMarkers[name];
     if (!(name in newLocations)) {
       map.removeOverlay(marker);
@@ -45,7 +45,7 @@ function updateLocations(newLocations) {
     marker.setLatLng(new GLatLng(coords.lat, coords.lng));
   }
   for (name in newLocations) {
-    if (!(name in locations)) {
+    if (!(name in allMarkers)) {
       addNewMarker(name, newLocations[name]);
     }
   }
