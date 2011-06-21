@@ -14,6 +14,11 @@ function initialize() {
   setTimeout("pollForUpdates()", 500);
 }
 
+function formatTimestamp(timestamp) {
+  var date = new Date(timestamp);
+  return date.toString();
+}
+
 function addNewMarker(name, coords) {
   var myicon = new GIcon();
   myicon.image = iconBase + "red-dot.png";
@@ -23,6 +28,11 @@ function addNewMarker(name, coords) {
   var marker = new GMarker(new GLatLng(coords.lat, coords.lng), {"icon": myicon});
   marker.coords = coords;
   current_marker = marker;
+  marker.text = name + ' at ' + formatTimestamp(coords.time);
+  GEvent.addListener(marker, "click", function() {
+      var htmlText = marker.text;
+      marker.openInfoWindow(htmlText);
+    });
   map.addOverlay(marker);
   allMarkers[name] = marker;
 }
@@ -42,6 +52,7 @@ function updateLocations(newLocations) {
       continue;
     }
     var coords = newLocations[name];
+    marker.text = name + ' at ' + formatTimestamp(coords.time);
     marker.setLatLng(new GLatLng(coords.lat, coords.lng));
   }
   for (name in newLocations) {
