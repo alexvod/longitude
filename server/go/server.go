@@ -188,7 +188,7 @@ func JavascriptHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAllLocations(manager chan ManagerRequest) *map[string]Location {
-	out := make(chan *map[string]Location)
+	out := make(chan *map[string]Location, 1)
 	manager <- &GetLocationsRequest{out}
 	locations := <- out
 	return locations
@@ -246,7 +246,7 @@ func Poll(w http.ResponseWriter, r *http.Request, manager chan ManagerRequest) {
 	params, _ := http.ParseQuery(r.URL.RawQuery)
 	outFormat, err := GetQueryParam(params, "output")
 
-	out := make(chan *map[string]Location)
+	out := make(chan *map[string]Location, 1)
 	manager <- &WaitForUpdatesRequest{out}
 	locations := <- out
 
@@ -309,7 +309,7 @@ func UpdateLocation(w http.ResponseWriter, r *http.Request, manager chan Manager
 		location.timestamp = now
 	}
 
-	out := make(chan bool)
+	out := make(chan bool, 1)
 	updateRequest := &UpdateLocationRequest{*name, location, out}
 	manager <- updateRequest
 	_ = <- out
@@ -326,7 +326,7 @@ func MakeHandler(manager chan ManagerRequest,
 
 func main() {
 	flag.Parse()
-	manager := make(chan ManagerRequest)
+	manager := make(chan ManagerRequest, 1)
 	go Manager(manager)
 	http.HandleFunc("/", MakeHandler(manager, ShowMainPage))
 	http.HandleFunc("/getloc", MakeHandler(manager, GetLocations))
