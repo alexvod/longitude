@@ -11,7 +11,7 @@ function initialize() {
 
   showLocations();
   // A hack to avoid forever-loading page.
-  setTimeout("pollForUpdates()", 50);
+  setTimeout("pollForUpdates()", 500);
 }
 
 function addNewMarker(name, coords) {
