@@ -19,6 +19,8 @@ var port *int = flag.Int("port", 46940, "Port to listen on")
 
 var indexHtml string = string(ReadFileOrDie("html/index.html"))
 
+const kDefaultPollTimeoutSec = 60 * 60
+
 func ReadFileOrDie(name string) []byte {
 	data, err := ioutil.ReadFile(name)
 	if err != nil {
@@ -88,13 +90,11 @@ func Manager(in chan ManagerRequest) {
 		switch t := req.(type) {
 		case *GetLocationsRequest:
 			getLocReq := req.(*GetLocationsRequest)
-			log.Printf("Got locations request")
 			newLocations := map[string]Location{}
 			CopyMap(locations, newLocations)
 			getLocReq.out <- &newLocations
 		case *UpdateLocationRequest:
 			updateReq := req.(*UpdateLocationRequest)
-			log.Printf("Got update request for %s", updateReq.id)
 			locations[updateReq.id] = *updateReq.location
 			updateReq.out <- true
 			newLocations := map[string]Location{}
@@ -105,7 +105,6 @@ func Manager(in chan ManagerRequest) {
 			}
 			waiters = list.New()
 		case *WaitForUpdatesRequest:
-			log.Printf("Got poll request")
 			pollReq := req.(*WaitForUpdatesRequest)
 			waiters.PushBack(pollReq.out)
 		default:
@@ -232,6 +231,7 @@ func ShowMainPage(w http.ResponseWriter, r *http.Request, manager chan ManagerRe
 func GetLocations(w http.ResponseWriter, r *http.Request, manager chan ManagerRequest) {
 	params, _ := http.ParseQuery(r.URL.RawQuery)
 	outFormat, err := GetQueryParam(params, "output")
+	log.Printf("Got locations request")
 	locations := GetAllLocations(manager)
 	
 	if err == nil && *outFormat == "proto" {
@@ -245,16 +245,40 @@ func GetLocations(w http.ResponseWriter, r *http.Request, manager chan ManagerRe
 func Poll(w http.ResponseWriter, r *http.Request, manager chan ManagerRequest) {
 	params, _ := http.ParseQuery(r.URL.RawQuery)
 	outFormat, err := GetQueryParam(params, "output")
+	if err != nil {
+		jsonFormat := "json"
+		outFormat = &jsonFormat
+	}
+	timeout, err := GetInt32QueryParam(params, "timeout")
+	if err != nil {
+		timeout = kDefaultPollTimeoutSec
+	}
+	if timeout <= 0 || timeout > 60 * 60 {
+		http.Error(w, fmt.Sprintf("Invalid timeout: %d", timeout), http.StatusBadRequest)
+		return
+	}
+	log.Printf("Got poll request timeout %d", timeout)
 
 	out := make(chan *map[string]Location, 1)
 	manager <- &WaitForUpdatesRequest{out}
-	locations := <- out
 
-	if err == nil && *outFormat == "proto" {
-		w.Header().Add("Content-type", "application/octet-stream")
-		w.Write(PrintLocationsAsProto(*locations))
-	} else {
-		w.Write([]byte(PrintLocationsAsJson(*locations)))
+	timeoutChan := make(chan bool, 1)
+	go func() {
+		time.Sleep(int64(timeout) * 1e9)
+		timeoutChan <- true
+	}()
+
+	select {
+	case locations := <- out:
+		if *outFormat == "proto" {
+			w.Header().Add("Content-type", "application/octet-stream")
+			w.Write(PrintLocationsAsProto(*locations))
+		} else {
+			w.Write([]byte(PrintLocationsAsJson(*locations)))
+		}
+	case <- timeoutChan:
+		log.Printf("Poll request timed out")
+		http.Error(w, "Poll request timed out, please try again", http.StatusRequestTimeout)
 	}
 }
 
@@ -302,6 +326,7 @@ func UpdateLocation(w http.ResponseWriter, r *http.Request, manager chan Manager
 		http.Error(w, *err, http.StatusBadRequest)
 		return
 	}
+	log.Printf("Got update request for %s with timestamp %d", *name, location.timestamp)
 
 	// Reject timestamp from future.
 	now := time.Seconds() * 1000
