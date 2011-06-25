@@ -12,10 +12,10 @@ import org.alexvod.longitude.Proto.LocationInfo;
 import org.ushmax.android.SettingsHelper;
 import org.ushmax.common.BufferAllocator;
 import org.ushmax.common.ByteArraySlice;
-import org.ushmax.common.Callback;
 import org.ushmax.common.Logger;
 import org.ushmax.common.LoggerFactory;
 import org.ushmax.common.Pair;
+import org.ushmax.common.WaitCallback;
 import org.ushmax.fetcher.AsyncHttpFetcher;
 import org.ushmax.fetcher.HttpFetcher;
 import org.ushmax.fetcher.HttpFetcher.MHttpRequest;
@@ -42,7 +42,8 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 public class LongitudeOverlay implements Overlay {
   private static final Logger logger = LoggerFactory.getLogger(LongitudeOverlay.class);
-  private static final int HTTP_DEADLINE = 30000;
+  private static final int GET_LOC_TIMEOUT = 30000;
+  private static final int POLL_TIMEOUT = 30 * 60;
   private AsyncHttpFetcher httpFetcher;
   private UiController uiController;
   private Paint paint, iconPaint;
@@ -56,7 +57,7 @@ public class LongitudeOverlay implements Overlay {
   private int iconSizeY;
   private Context context;
   private static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-  
+
   public LongitudeOverlay(Context context, Resources resources, AsyncHttpFetcher httpFetcher, UiController uiController) {
     this.context = context;
     this.httpFetcher = httpFetcher;
@@ -70,58 +71,68 @@ public class LongitudeOverlay implements Overlay {
     iconSizeY = icon.getHeight();
     iconAnchorX = iconSizeX / 2;
     iconAnchorY = iconSizeY;
-    
+
     quit = false;
     updaterThread = new Thread(new Runnable() { 
 
-    @Override
-    public void run() {
-      updaterThreadLoop();
-    } });
+      @Override
+      public void run() {
+        updaterThreadLoop();
+      } });
     updaterThread.start();
   }
-  
+
   private void updaterThreadLoop() {
+    boolean hasData = false;
     while (!quit) {
       SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
       String serverAddress = SettingsHelper.getStringPref(prefs, "longitude_server", "host:port");
-      int updateInterval = SettingsHelper.getIntPref(prefs, "longitude_update", 60000);
-      String url = "http://" + serverAddress + "/getloc?output=proto";
+
+      // Use /getloc for the first request, /poll for updates.
+      String url = "http://" + serverAddress;
+      if (hasData) {
+        url = url + "/poll?output=proto&timeout=" + POLL_TIMEOUT;
+      } else {
+        url = url + "/getloc?output=proto";
+      }
+
       MHttpRequest req = new MHttpRequest();
       req.method = HttpFetcher.Method.GET;
       req.url = url;
-      httpFetcher.fetch(req,
-          new Callback<Pair<ByteArraySlice, NetworkException>>() {
-            @Override
-            public void run(Pair<ByteArraySlice, NetworkException> result) {
-              onReceiveUpdate(result);
-            }}, HTTP_DEADLINE);
+      int deadline = hasData ? (POLL_TIMEOUT + 60) : GET_LOC_TIMEOUT;
+      WaitCallback<Pair<ByteArraySlice, NetworkException>> callback = new WaitCallback<Pair<ByteArraySlice, NetworkException>>();
+      httpFetcher.fetch(req, callback, deadline * 1000);
+      Pair<ByteArraySlice, NetworkException> result;
       try {
-        Thread.sleep(updateInterval);
+        result = callback.waitForCompletionWithInterrupt();
       } catch (InterruptedException e) {
-        break;
+        continue;
+      }
+      ByteArraySlice data = result.first;
+      if (data == null) {
+        logger.error("Error occured during fetching location: " + result.second);
+        // Likely a network error. Wait a bit.
+        try {
+          Thread.sleep(30 * 1000);
+        } catch (InterruptedException e) {
+          break;
+        }
+        continue;
+      }
+      try {
+        LocationInfo info = LocationInfo.newBuilder().mergeFrom(data.data, data.start, data.count).build();
+        synchronized (this) {
+          locationInfo = info;
+          hasData = true;
+        }
+        uiController.invalidate();
+      } catch (InvalidProtocolBufferException e) {
+        logger.error("Received broken repsonse from server: " + e);
+      } finally {
+        BufferAllocator.free(data, "LongitudeOverlay.onReceiveUpdate");
       }
     }
     logger.debug("Exiting updater thread");
-  }
-
-  private void onReceiveUpdate(Pair<ByteArraySlice, NetworkException> result) {
-    ByteArraySlice data = result.first;
-    if (data == null) {
-      logger.error("Error occured during fetching location: " + result.second);
-      return;
-    }
-    try {
-      LocationInfo info = LocationInfo.newBuilder().mergeFrom(data.data, data.start, data.count).build();
-      synchronized (this) {
-        locationInfo = info;
-      }
-      uiController.invalidate();
-    } catch (InvalidProtocolBufferException e) {
-      logger.error("Received broken repsonse from server: " + e);
-    } finally {
-      BufferAllocator.free(data, "LongitudeOverlay.onReceiveUpdate");
-    }
   }
 
   @Override
@@ -141,20 +152,20 @@ public class LongitudeOverlay implements Overlay {
       int accuracy = (int) (location.getAccuracy() * 
           MercatorReference.metersToPixels((float)location.getLat(), (float)location.getLng(), 20));
       int radius = accuracy >> zoomShift;
-      x = (x >> zoomShift) - origin.x;
-      y = (y >> zoomShift) - origin.y;
-      if (radius > 3) {
-        canvas.drawCircle(x, y, radius, paint);
-      }
-      int pt_x = x - iconAnchorX;
-      int pt_y = y - iconAnchorY;
-      if ((pt_x < -iconSizeX) ||
-          (pt_y < -iconSizeY) ||
-          (pt_x > size.x) ||
-          (pt_y > size.y)) {
-        continue;
-      }
-      canvas.drawBitmap(icon, pt_x, pt_y, iconPaint);
+    x = (x >> zoomShift) - origin.x;
+    y = (y >> zoomShift) - origin.y;
+    if (radius > 3) {
+      canvas.drawCircle(x, y, radius, paint);
+    }
+    int pt_x = x - iconAnchorX;
+    int pt_y = y - iconAnchorY;
+    if ((pt_x < -iconSizeX) ||
+        (pt_y < -iconSizeY) ||
+        (pt_x > size.x) ||
+        (pt_y > size.y)) {
+      continue;
+    }
+    canvas.drawBitmap(icon, pt_x, pt_y, iconPaint);
     }
   }
 
