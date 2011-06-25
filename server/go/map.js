@@ -78,6 +78,6 @@ function handler() {
 function pollForUpdates() {
   var client = new XMLHttpRequest();
   client.onreadystatechange = handler;
-  client.open("GET", "/poll", true)
+  client.open("GET", "/poll?timeout=2400", true)
   client.send();
 }
