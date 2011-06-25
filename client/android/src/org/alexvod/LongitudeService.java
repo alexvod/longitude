@@ -34,6 +34,7 @@ public class LongitudeService extends Service {
   private LocationTracker locationTracker;
   private ProxyListener gpsListener;
   private ProxyListener networkListener;
+  private boolean isRunning;
 
   /**
    * Class for clients to access.  Because we know this service always
@@ -48,6 +49,7 @@ public class LongitudeService extends Service {
 
   @Override
   public void onCreate() {
+    isRunning = false;
     logger = LoggerFactory.getLogger(LongitudeService.class);
     notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
 
@@ -63,7 +65,6 @@ public class LongitudeService extends Service {
 
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
-    logger.debug("Starting");
     enableLocationTracking();
 
     // We want this service to continue running until it is explicitly
@@ -72,6 +73,12 @@ public class LongitudeService extends Service {
   }
 
   public void enableLocationTracking() {
+    if (isRunning) {
+      logger.debug("Already running");
+      return;
+    }
+
+    logger.debug("Starting location tracker");
     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
     int minTime = SettingsHelper.getIntPref(prefs, "loc_update_time", 60000);
     int minDistance = SettingsHelper.getIntPref(prefs, "loc_update_distance", 10);
@@ -87,11 +94,16 @@ public class LongitudeService extends Service {
     if (useNetwork) {
       networkListener = new ProxyListener(locationTracker);
       locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, minTime, minDistance, networkListener);
-      logger.debug("Network bound bound");
+      logger.debug("Network bound");
     }
+    isRunning = true;
   }
 
   public void disableLocationTracking() {
+    if (!isRunning) {
+      logger.debug("Not running");
+      return;
+    }
     LocationManager mgr = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
     if (gpsListener != null) { 
       mgr.removeUpdates(gpsListener);
@@ -105,10 +117,12 @@ public class LongitudeService extends Service {
       networkListener = null;
       logger.debug("Network unbound");
     }
+    isRunning = false;
   }
 
   @Override
   public void onDestroy() {
+    logger.debug("Stopping");
     disableLocationTracking();
 
     // Cancel the persistent notification.
@@ -116,7 +130,6 @@ public class LongitudeService extends Service {
 
     // Tell the user we stopped.
     Toast.makeText(this, "Stopped", Toast.LENGTH_SHORT).show();
-    logger.debug("Stopping");
   }
 
   @Override
