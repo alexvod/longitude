@@ -227,6 +227,7 @@ func Poll(w http.ResponseWriter, r *http.Request, validator auth.Validator, mana
 
 	select {
 	case locations := <- out:
+		log.Printf("Sending update on poll request from %s", *client)
 		if *outFormat == "proto" {
 			w.Header().Add("Content-type", "application/octet-stream")
 			w.Write(PrintLocationsAsProto(*locations))
@@ -234,7 +235,7 @@ func Poll(w http.ResponseWriter, r *http.Request, validator auth.Validator, mana
 			w.Write([]byte(PrintLocationsAsJson(*locations)))
 		}
 	case <- timeoutChan:
-		log.Printf("Poll request timed out")
+		log.Printf("Poll request from %s timed out", *client)
 		http.Error(w, "Poll request timed out, please try again", http.StatusRequestTimeout)
 	}
 }
