@@ -28,10 +28,16 @@ public class LongitudeUiModule implements UiModule {
     pref1.setDefaultValue("");
     screen.addPreference(pref1);
     EditTextPreference pref2 = new EditTextPreference(context);
-    pref2.setSummary("Longitude update frequency");
-    pref2.setKey("longitude_update");
-    pref2.setTitle("Interval between longitude updates in ms");
-    pref2.setDefaultValue("60000");
+    pref2.setSummary("Longitude user");
+    pref2.setKey("longitude_user");
+    pref2.setTitle("Longitude user name");
+    pref2.setDefaultValue("user");
     screen.addPreference(pref2);
+    EditTextPreference pref3 = new EditTextPreference(context);
+    pref3.setSummary("Longitude token");
+    pref3.setKey("longitude_token");
+    pref3.setTitle("Longitude authorization token");
+    pref3.setDefaultValue("passsw0rd");
+    screen.addPreference(pref3);
   }
 }

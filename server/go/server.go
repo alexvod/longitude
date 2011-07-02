@@ -8,26 +8,20 @@ import (
 	"io/ioutil"
 	"log"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
         proto "goprotobuf.googlecode.com/hg/proto"
 	locationProto "./proto/location.pb"
+	"./util"
+	"./query"
+	"./auth"
 )
 
 var port *int = flag.Int("port", 46940, "Port to listen on")
 
-var indexHtml string = string(ReadFileOrDie("html/index.html"))
+var indexHtml string = string(util.ReadFileOrDie("html/index.html"))
 
 const kDefaultPollTimeoutSec = 60 * 60
-
-func ReadFileOrDie(name string) []byte {
-	data, err := ioutil.ReadFile(name)
-	if err != nil {
-		log.Panicf("Cannot read file %s", name)
-	}
-	return data
-}
 
 type Location struct {
 	lat float32
@@ -113,61 +107,9 @@ func Manager(in chan ManagerRequest) {
 	}
 }
 
-func GetQueryParam(params map[string][]string, name string) (*string, *string) {
-	allValues := params[name]
-	if len(allValues) == 0 {
-		message := "Missing " + name
-		return nil, &message
-	}
-	if len(allValues) > 1 {
-		message := "More than one value of " + name
-		return nil, &message
-	}
-	return &allValues[0], nil
-}
-
-func GetInt32QueryParam(params map[string][]string, name string) (int, *string) {
-	stringValue, err := GetQueryParam(params, name)
-	if err != nil {
-		return 0, err
-	}
-	result, convErr := strconv.Atoi(*stringValue)
-	if convErr != nil {
-		message := "Invalid value for parameter " + name + ", expected integer"
-		return 0, &message
-	}
-	return result, nil
-}
-
-func GetInt64QueryParam(params map[string][]string, name string) (int64, *string) {
-	stringValue, err := GetQueryParam(params, name)
-	if err != nil {
-		return 0, err
-	}
-	result, convErr := strconv.Atoi64(*stringValue)
-	if convErr != nil {
-		message := "Invalid value for parameter " + name + ", expected integer"
-		return 0, &message
-	}
-	return result, nil
-}
-
-func GetFloatQueryParam(params map[string][]string, name string) (float32, *string) {
-	stringValue, err := GetQueryParam(params, name)
-	if err != nil {
-		return 0.0, err
-	}
-	result, convErr := strconv.Atof32(*stringValue)
-	if convErr != nil {
-		message := "Invalid value for parameter " + name + ", expected float"
-		return 0.0, &message
-	}
-	return result, nil
-}
-
 func JavascriptHandler(w http.ResponseWriter, r *http.Request) {
 	params, _ := http.ParseQuery(r.URL.RawQuery)
-	name, err := GetQueryParam(params, "name")
+	name, err := query.GetQueryParam(params, "name")
 	if err != nil {
 		http.Error(w, *err, http.StatusBadRequest)
 		return
@@ -221,17 +163,27 @@ func PrintLocationsAsProto(locations map[string]Location) []byte {
 	return data
 }
 
-func ShowMainPage(w http.ResponseWriter, r *http.Request, manager chan ManagerRequest) {
+func ShowMainPage(w http.ResponseWriter, r *http.Request, validator auth.Validator, manager chan ManagerRequest) {
+	auth_ok, client := validator.Validate(w, r)
+	if !auth_ok {
+		return
+	}
+	log.Printf("Got main page request from %s", *client)
 	locations := GetAllLocations(manager)
 	response := strings.Replace(indexHtml, "@@LOCATIONS@@",
 		PrintLocationsAsJson(*locations), -1)
 	w.Write([]byte(response))
 }
 
-func GetLocations(w http.ResponseWriter, r *http.Request, manager chan ManagerRequest) {
+func GetLocations(w http.ResponseWriter, r *http.Request, validator auth.Validator, manager chan ManagerRequest) {
+	auth_ok, client := validator.Validate(w, r)
+	if !auth_ok {
+		return
+	}
+	log.Printf("Got locations request from %s", *client)
+
 	params, _ := http.ParseQuery(r.URL.RawQuery)
-	outFormat, err := GetQueryParam(params, "output")
-	log.Printf("Got locations request")
+	outFormat, err := query.GetQueryParam(params, "output")
 	locations := GetAllLocations(manager)
 	
 	if err == nil && *outFormat == "proto" {
@@ -242,14 +194,19 @@ func GetLocations(w http.ResponseWriter, r *http.Request, manager chan ManagerRe
 	}
 }
 
-func Poll(w http.ResponseWriter, r *http.Request, manager chan ManagerRequest) {
+func Poll(w http.ResponseWriter, r *http.Request, validator auth.Validator, manager chan ManagerRequest) {
+	auth_ok, client := validator.Validate(w, r)
+	if !auth_ok {
+		return
+	}
+	
 	params, _ := http.ParseQuery(r.URL.RawQuery)
-	outFormat, err := GetQueryParam(params, "output")
+	outFormat, err := query.GetQueryParam(params, "output")
 	if err != nil {
 		jsonFormat := "json"
 		outFormat = &jsonFormat
 	}
-	timeout, err := GetInt32QueryParam(params, "timeout")
+	timeout, err := query.GetInt32QueryParam(params, "timeout")
 	if err != nil {
 		timeout = kDefaultPollTimeoutSec
 	}
@@ -257,7 +214,7 @@ func Poll(w http.ResponseWriter, r *http.Request, manager chan ManagerRequest) {
 		http.Error(w, fmt.Sprintf("Invalid timeout: %d", timeout), http.StatusBadRequest)
 		return
 	}
-	log.Printf("Got poll request timeout %d", timeout)
+	log.Printf("Got poll request from %s with timeout %d", *client, timeout)
 
 	out := make(chan *map[string]Location, 1)
 	manager <- &WaitForUpdatesRequest{out}
@@ -283,19 +240,19 @@ func Poll(w http.ResponseWriter, r *http.Request, manager chan ManagerRequest) {
 }
 
 func ParseLocationFromRequest(params map[string][]string) (*Location, *string) {
-	lat, err := GetFloatQueryParam(params, "lat")
+	lat, err := query.GetFloatQueryParam(params, "lat")
 	if err != nil {
 		return nil, err
 	}
-	lng, err := GetFloatQueryParam(params, "lng")
+	lng, err := query.GetFloatQueryParam(params, "lng")
 	if err != nil {
 		return nil, err
 	}
-	accuracy, err := GetFloatQueryParam(params, "acc")
+	accuracy, err := query.GetFloatQueryParam(params, "acc")
 	if err != nil {
 		return nil, err
 	}
-	timestamp, err := GetInt64QueryParam(params, "time")
+	timestamp, err := query.GetInt64QueryParam(params, "time")
 	if err != nil {
 		return nil, err
 	}
@@ -314,19 +271,19 @@ func ParseLocationFromRequest(params map[string][]string) (*Location, *string) {
 	return location, err
 }
 
-func UpdateLocation(w http.ResponseWriter, r *http.Request, manager chan ManagerRequest) {
-	params, _ := http.ParseQuery(r.URL.RawQuery)
-	name, err := GetQueryParam(params, "id")
-	if err != nil {
-		http.Error(w, *err, http.StatusBadRequest)
+func UpdateLocation(w http.ResponseWriter, r *http.Request, validator auth.Validator, manager chan ManagerRequest) {
+	auth_ok, client := validator.Validate(w, r)
+	if !auth_ok {
 		return
 	}
+
+	params, _ := http.ParseQuery(r.URL.RawQuery)
 	location, err := ParseLocationFromRequest(params)
 	if err != nil {
 		http.Error(w, *err, http.StatusBadRequest)
 		return
 	}
-	log.Printf("Got update request for %s with timestamp %d", *name, location.timestamp)
+	log.Printf("Got update request for %s with timestamp %d", *client, location.timestamp)
 
 	// Reject timestamp from future.
 	now := time.Seconds() * 1000
@@ -335,31 +292,33 @@ func UpdateLocation(w http.ResponseWriter, r *http.Request, manager chan Manager
 	}
 
 	out := make(chan bool, 1)
-	updateRequest := &UpdateLocationRequest{*name, location, out}
+	updateRequest := &UpdateLocationRequest{*client, location, out}
 	manager <- updateRequest
 	_ = <- out
 	response := "ok"
 	fmt.Fprintf(w, response)
 }
 
-func MakeHandler(manager chan ManagerRequest,
-	fn func (http.ResponseWriter, *http.Request, chan ManagerRequest)) http.HandlerFunc {
+func MakeHandler(manager chan ManagerRequest, validator auth.Validator,
+	fn func (http.ResponseWriter, *http.Request, auth.Validator, chan ManagerRequest)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, manager)
+		fn(w, r, validator, manager)
 	}
 }
 
 func main() {
 	flag.Parse()
+	validator := auth.NewDefaultValidator()
 	manager := make(chan ManagerRequest, 1)
 	go Manager(manager)
-	http.HandleFunc("/", MakeHandler(manager, ShowMainPage))
-	http.HandleFunc("/getloc", MakeHandler(manager, GetLocations))
-	http.HandleFunc("/update", MakeHandler(manager, UpdateLocation))
-	http.HandleFunc("/poll", MakeHandler(manager, Poll))
+	http.HandleFunc("/", MakeHandler(manager, validator, ShowMainPage))
+	http.HandleFunc("/getloc", MakeHandler(manager, validator, GetLocations))
+	http.HandleFunc("/update", MakeHandler(manager, validator, UpdateLocation))
+	http.HandleFunc("/poll", MakeHandler(manager, validator, Poll))
 	http.HandleFunc("/js", JavascriptHandler)
-	log.Printf("Listening on HTTP port %d", *port)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
+	log.Printf("Listening on HTTPS port %d", *port)
+	//err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
+	err := http.ListenAndServeTLS(fmt.Sprintf(":%d", *port), "cert.pem", "key.pem", nil)
 	if err != nil {
 		log.Fatal(err)
 	}

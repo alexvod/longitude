@@ -1,6 +1,5 @@
 package org.alexvod;
 
-import org.ushmax.android.AndroidHttpFetcher;
 import org.ushmax.android.AndroidLogger;
 import org.ushmax.android.SettingsHelper;
 import org.ushmax.common.Factory;
@@ -8,6 +7,7 @@ import org.ushmax.common.ITaskDispatcher;
 import org.ushmax.common.Logger;
 import org.ushmax.common.LoggerFactory;
 import org.ushmax.common.QueuedTaskDispatcher;
+import org.ushmax.fetcher.HttpFetcherImpl;
 import org.ushmax.fetcher.AsyncHttpFetcher;
 import org.ushmax.fetcher.HttpFetcher;
 
@@ -44,7 +44,7 @@ public class LongitudeApp extends Application {
 
     int numNetworkThreads = SettingsHelper.getIntPref(prefs, "num_network_threads", 4);
     taskDispatcher = new QueuedTaskDispatcher(numNetworkThreads);
-    httpFetcher = new AndroidHttpFetcher();
+    httpFetcher = new HttpFetcherImpl();
     asyncHttpFetcher = new AsyncHttpFetcher(httpFetcher, taskDispatcher);
     taskDispatcher.start();
   }

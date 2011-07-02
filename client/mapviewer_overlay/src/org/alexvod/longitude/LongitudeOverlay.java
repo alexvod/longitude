@@ -5,6 +5,7 @@ package org.alexvod.longitude;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 
 import org.alexvod.longitude.Proto.Location;
@@ -74,7 +75,6 @@ public class LongitudeOverlay implements Overlay {
 
     quit = false;
     updaterThread = new Thread(new Runnable() { 
-
       @Override
       public void run() {
         updaterThreadLoop();
@@ -87,9 +87,11 @@ public class LongitudeOverlay implements Overlay {
     while (!quit) {
       SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
       String serverAddress = SettingsHelper.getStringPref(prefs, "longitude_server", "host:port");
-
+      String clientId = SettingsHelper.getStringPref(prefs, "longitude_user", "user");
+      String authToken = SettingsHelper.getStringPref(prefs, "longitude_token", "passw0rd");
+      
       // Use /getloc for the first request, /poll for updates.
-      String url = "http://" + serverAddress;
+      String url = "https://" + serverAddress;
       if (hasData) {
         url = url + "/poll?output=proto&timeout=" + POLL_TIMEOUT;
       } else {
@@ -99,6 +101,10 @@ public class LongitudeOverlay implements Overlay {
       MHttpRequest req = new MHttpRequest();
       req.method = HttpFetcher.Method.GET;
       req.url = url;
+      req.cookies = new ArrayList<Pair<String, String>>();
+      req.cookies.add(Pair.newInstance("client", clientId));
+      req.cookies.add(Pair.newInstance("token", authToken));
+      
       int deadline = hasData ? (POLL_TIMEOUT + 60) : GET_LOC_TIMEOUT;
       WaitCallback<Pair<ByteArraySlice, NetworkException>> callback = new WaitCallback<Pair<ByteArraySlice, NetworkException>>();
       httpFetcher.fetch(req, callback, deadline * 1000);
@@ -110,7 +116,7 @@ public class LongitudeOverlay implements Overlay {
       }
       ByteArraySlice data = result.first;
       if (data == null) {
-        logger.error("Error occured during fetching location: " + result.second);
+        logger.error("Error occured during fetching location: " + result.second + " caused by " + result.second.getCause());
         // Likely a network error. Wait a bit.
         try {
           Thread.sleep(30 * 1000);

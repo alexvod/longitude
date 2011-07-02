@@ -1,12 +1,12 @@
 package org.alexvod;
 
-import org.ushmax.android.AndroidHttpFetcher;
 import org.ushmax.android.ProxyListener;
 import org.ushmax.android.SettingsHelper;
 import org.ushmax.common.ITaskDispatcher;
 import org.ushmax.common.Logger;
 import org.ushmax.common.LoggerFactory;
 import org.ushmax.common.QueuedTaskDispatcher;
+import org.ushmax.fetcher.HttpFetcherImpl;
 import org.ushmax.fetcher.AsyncHttpFetcher;
 import org.ushmax.fetcher.HttpFetcher;
 
@@ -57,7 +57,7 @@ public class LongitudeService extends Service {
     showNotification();
 
     ITaskDispatcher taskDispatcher = new QueuedTaskDispatcher(4);
-    HttpFetcher httpFetcher = new AndroidHttpFetcher(null);
+    HttpFetcher httpFetcher = new HttpFetcherImpl(null);
     AsyncHttpFetcher asyncHttpFetcher = new AsyncHttpFetcher(httpFetcher, taskDispatcher); 
     locationTracker = new LocationTracker(this, asyncHttpFetcher);
     taskDispatcher.start();
