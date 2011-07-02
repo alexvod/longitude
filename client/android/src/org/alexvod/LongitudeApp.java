@@ -7,9 +7,9 @@ import org.ushmax.common.ITaskDispatcher;
 import org.ushmax.common.Logger;
 import org.ushmax.common.LoggerFactory;
 import org.ushmax.common.QueuedTaskDispatcher;
-import org.ushmax.fetcher.HttpFetcherImpl;
 import org.ushmax.fetcher.AsyncHttpFetcher;
 import org.ushmax.fetcher.HttpFetcher;
+import org.ushmax.fetcher.HttpFetcherImpl;
 
 import android.app.Application;
 import android.content.SharedPreferences;
@@ -38,13 +38,13 @@ public class LongitudeApp extends Application {
     super.onCreate();
     create();
   }
-
+  
   private void create() {
     prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
     int numNetworkThreads = SettingsHelper.getIntPref(prefs, "num_network_threads", 4);
     taskDispatcher = new QueuedTaskDispatcher(numNetworkThreads);
-    httpFetcher = new HttpFetcherImpl();
+    httpFetcher = new HttpFetcherImpl(null);
     asyncHttpFetcher = new AsyncHttpFetcher(httpFetcher, taskDispatcher);
     taskDispatcher.start();
   }

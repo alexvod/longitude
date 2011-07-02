@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 <EditTextPreference android:key="longitude_server" android:summary="Longitude server in host:port format" android:title="Longitude server"></EditTextPreference>
-<EditTextPreference android:key="client_name" android:summary="User nickname" android:title="Name"></EditTextPreference>
+<EditTextPreference android:key="longitude_user" android:summary="Longitude user name" android:title="Name"></EditTextPreference>
+<EditTextPreference android:key="longitude_token" android:summary="Longitude authorization token" android:title="Auth token"></EditTextPreference>
 <EditTextPreference android:key="loc_update_time" android:summary="Time interval of GPS location updates, in milliseconds" android:title="Location update interval"></EditTextPreference>
 <EditTextPreference android:key="loc_update_distance" android:summary="Minimal distance of GPS location updates, in meters" android:title="Location update distance"></EditTextPreference>
 <CheckBoxPreference android:key="loc_use_gps" android:summary="Use GPS for location tracking" android:title="Use GPS location"></CheckBoxPreference>

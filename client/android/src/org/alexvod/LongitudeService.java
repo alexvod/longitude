@@ -1,5 +1,14 @@
 package org.alexvod;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+
+import org.alexvod.data.KeyStoreData;
 import org.ushmax.android.ProxyListener;
 import org.ushmax.android.SettingsHelper;
 import org.ushmax.common.ITaskDispatcher;
@@ -46,6 +55,24 @@ public class LongitudeService extends Service {
       return LongitudeService.this;
     }
   }
+  
+  private KeyStore loadKeyStore() {
+    try {
+      KeyStore trusted;
+      trusted = KeyStore.getInstance("BKS");
+      InputStream in = new ByteArrayInputStream(KeyStoreData.DATA);
+      trusted.load(in, "123456".toCharArray());
+      return trusted;
+    } catch (KeyStoreException e) {
+      throw new RuntimeException(e);
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException(e);      
+    } catch (CertificateException e) {
+      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   @Override
   public void onCreate() {
@@ -57,7 +84,7 @@ public class LongitudeService extends Service {
     showNotification();
 
     ITaskDispatcher taskDispatcher = new QueuedTaskDispatcher(4);
-    HttpFetcher httpFetcher = new HttpFetcherImpl(null);
+    HttpFetcher httpFetcher = new HttpFetcherImpl(loadKeyStore());
     AsyncHttpFetcher asyncHttpFetcher = new AsyncHttpFetcher(httpFetcher, taskDispatcher); 
     locationTracker = new LocationTracker(this, asyncHttpFetcher);
     taskDispatcher.start();

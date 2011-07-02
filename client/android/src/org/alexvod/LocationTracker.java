@@ -1,5 +1,7 @@
 package org.alexvod;
 
+import java.util.ArrayList;
+
 import org.ushmax.android.SettingsHelper;
 import org.ushmax.common.BufferAllocator;
 import org.ushmax.common.ByteArraySlice;
@@ -22,15 +24,17 @@ import android.preference.PreferenceManager;
 public class LocationTracker implements LocationListener { 
   private static final Logger logger = LoggerFactory.getLogger(LocationTracker.class);
   
-  private String id;
   private int networkTimeout;
   private AsyncHttpFetcher httpFetcher;
   private String server;
+  private String clientId;
+  private String authToken;
 
   public LocationTracker(Context context, AsyncHttpFetcher httpFetcher) {
     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
     server = SettingsHelper.getStringPref(prefs, "longitude_server", "host:port");
-    id = SettingsHelper.getStringPref(prefs, "client_name", "test");
+    clientId = SettingsHelper.getStringPref(prefs, "longitude_user", "user");
+    authToken = SettingsHelper.getStringPref(prefs, "longitude_token", "passw0rd");
     networkTimeout = 30000;
     this.httpFetcher = httpFetcher;
   }
@@ -47,10 +51,13 @@ public class LocationTracker implements LocationListener {
   }
 
   private void sendLocationToServer(double lat, double lng, double accuracy, long timestamp) {
-    final String url = "http://" + server + "/update?id=" + id + "&lat=" + lat + "&lng=" + lng + "&acc=" + accuracy + "&time=" + timestamp;
+    final String url = "https://" + server + "/update?lat=" + lat + "&lng=" + lng + "&acc=" + accuracy + "&time=" + timestamp;
     MHttpRequest req = new MHttpRequest();
     req.url = url;
     req.method = HttpFetcher.Method.POST;
+    req.cookies = new ArrayList<Pair<String, String>>();
+    req.cookies.add(Pair.newInstance("client", clientId));
+    req.cookies.add(Pair.newInstance("token", authToken));
 
     Callback<Pair<ByteArraySlice, NetworkException>> callback = 
       new Callback<Pair<ByteArraySlice, NetworkException>>() {
