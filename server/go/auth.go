@@ -44,12 +44,12 @@ func getCookieValue(cookie []*http.Cookie, name string) *string {
 	
 
 func (authData* validatorImpl) Validate(w http.ResponseWriter, r *http.Request) (bool, *string) {
-	client := getCookieValue(r.Cookie, "client")
+	client := getCookieValue(r.Cookies(), "client")
 	if client == nil {
 		http.Error(w, "Missing client cookie", http.StatusBadRequest)
 		return false, nil
 	}
-	token := getCookieValue(r.Cookie, "token")
+	token := getCookieValue(r.Cookies(), "token")
 	if token == nil {
 		http.Error(w, "Missing token cookie", http.StatusBadRequest)
 		return false, nil
