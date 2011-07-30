@@ -18,6 +18,7 @@ import (
 )
 
 var port *int = flag.Int("port", 46940, "Port to listen on")
+var host *string = flag.String("host", "", "Host interface to listen on")
 
 var indexHtml string = string(util.ReadFileOrDie("html/index.html"))
 
@@ -317,9 +318,9 @@ func main() {
 	http.HandleFunc("/update", MakeHandler(manager, validator, UpdateLocation))
 	http.HandleFunc("/poll", MakeHandler(manager, validator, Poll))
 	http.HandleFunc("/js", JavascriptHandler)
-	log.Printf("Listening on HTTPS port %d", *port)
+	log.Printf("Listening on HTTPS at %s:%d", *host, *port)
 	//err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
-	err := http.ListenAndServeTLS(fmt.Sprintf(":%d", *port), "cert.pem", "key.pem", nil)
+	err := http.ListenAndServeTLS(fmt.Sprintf("%s:%d", *host, *port), "cert.pem", "key.pem", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
