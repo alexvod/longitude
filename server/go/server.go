@@ -301,6 +301,10 @@ func UpdateLocation(w http.ResponseWriter, r *http.Request, validator auth.Valid
 	fmt.Fprintf(w, response)
 }
 
+func LoginHandler(w http.ResponseWriter, r *http.Request, validator auth.Validator, manager chan ManagerRequest) {
+	validator.LoginHandler(w, r)
+}
+
 func MakeHandler(manager chan ManagerRequest, validator auth.Validator,
 	fn func (http.ResponseWriter, *http.Request, auth.Validator, chan ManagerRequest)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -317,6 +321,7 @@ func main() {
 	http.HandleFunc("/getloc", MakeHandler(manager, validator, GetLocations))
 	http.HandleFunc("/update", MakeHandler(manager, validator, UpdateLocation))
 	http.HandleFunc("/poll", MakeHandler(manager, validator, Poll))
+	http.HandleFunc("/login", MakeHandler(manager, validator, LoginHandler))
 	http.HandleFunc("/js", JavascriptHandler)
 	log.Printf("Listening on HTTPS at %s:%d", *host, *port)
 	//err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
