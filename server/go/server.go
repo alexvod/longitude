@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"url"
         proto "goprotobuf.googlecode.com/hg/proto"
 	locationProto "./proto/location.pb"
 	"./util"
@@ -109,7 +110,7 @@ func Manager(in chan ManagerRequest) {
 }
 
 func JavascriptHandler(w http.ResponseWriter, r *http.Request) {
-	params, _ := http.ParseQuery(r.URL.RawQuery)
+	params, _ := url.ParseQuery(r.URL.RawQuery)
 	name, err := query.GetQueryParam(params, "name")
 	if err != nil {
 		http.Error(w, *err, http.StatusBadRequest)
@@ -183,7 +184,7 @@ func GetLocations(w http.ResponseWriter, r *http.Request, validator auth.Validat
 	}
 	log.Printf("Got locations request from %s", *client)
 
-	params, _ := http.ParseQuery(r.URL.RawQuery)
+	params, _ := url.ParseQuery(r.URL.RawQuery)
 	outFormat, err := query.GetQueryParam(params, "output")
 	locations := GetAllLocations(manager)
 	
@@ -201,7 +202,7 @@ func Poll(w http.ResponseWriter, r *http.Request, validator auth.Validator, mana
 		return
 	}
 	
-	params, _ := http.ParseQuery(r.URL.RawQuery)
+	params, _ := url.ParseQuery(r.URL.RawQuery)
 	outFormat, err := query.GetQueryParam(params, "output")
 	if err != nil {
 		jsonFormat := "json"
@@ -279,7 +280,7 @@ func UpdateLocation(w http.ResponseWriter, r *http.Request, validator auth.Valid
 		return
 	}
 
-	params, _ := http.ParseQuery(r.URL.RawQuery)
+	params, _ := url.ParseQuery(r.URL.RawQuery)
 	location, err := ParseLocationFromRequest(params)
 	if err != nil {
 		http.Error(w, *err, http.StatusBadRequest)
